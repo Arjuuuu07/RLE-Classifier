@@ -240,30 +240,6 @@ where the CNN wins.
 
 ---
 
-## Tuning the Encoding: MAX_RUNS and THRESH_K
-
-The two knobs that control the fidelity/compression trade-off of the RLE
-representation are configurable and **have not yet been swept or tuned**:
-
-- **`MAX_RUNS`** — how many runs are kept per row/column before truncation (default:
-  `4`). Raising it captures more fine-grained structure per row at the cost of a
-  larger feature vector (and slightly more downstream compute); lowering it compresses
-  further but risks losing runs in busy/high-contrast rows. All results in this README
-  used `MAX_RUNS = 4`.
-- **`THRESH_K`** — the multiplier on the per-image standard deviation used to set the
-  binarization threshold (`threshold = mean + THRESH_K · std`, default: `0.2`). This
-  controls how aggressively pixels are classified as "on" vs. "off" before run
-  detection, and is currently set per-project rather than tuned per-dataset.
-
-Because both values were chosen once and held fixed across all four datasets for a
-fair comparison, **the efficiency numbers above are a lower bound, not a ceiling** — a
-per-dataset sweep of `MAX_RUNS`/`THRESH_K` could plausibly close some or all of the
-remaining accuracy gap on Pneumonia/KMNIST, or compress the representation even
-further on datasets where 4 runs/row is already more than needed. This is one of the
-most direct, low-effort next steps for improving the RLE side of the comparison
-further (see [Roadmap](#roadmap)).
-
----
 
 ## Why This Matters
 
@@ -300,9 +276,6 @@ Being upfront about what hasn't been shown yet keeps the efficiency claim credib
   benchmark — where GPU parallelism advantages disappear — hasn't been run yet either,
   even though it's the setting most likely to convert RLE's FLOP advantage into an
   actual wall-clock win.
-- **Not a rigorously tuned model.** Architecture and hyperparameters (including
-  `MAX_RUNS` and `THRESH_K`, see above) were fixed for a fair head-to-head comparison,
-  not optimized for best possible RLE performance.
 - **Grayscale/B&W only** — the encoding assumes a single intensity channel and hasn't
   been extended to color.
 - **Tested at small-to-medium scale only** (956–60,000 images); behavior at
@@ -314,18 +287,17 @@ Being upfront about what hasn't been shown yet keeps the efficiency claim credib
 
 ## Roadmap
 
-1. **Sweep `MAX_RUNS` and `THRESH_K` per dataset** — the most direct lever for
-   closing the remaining accuracy gap without adding parameters.
-2. **CPU-only benchmarking** — the most likely place for RLE's FLOP advantage to
+
+-. **CPU-only benchmarking** — the most likely place for RLE's FLOP advantage to
    convert into an actual, provable wall-clock win.
-3. **RLE-specific architecture search**, instead of reusing a shape mirrored from the
+-. **RLE-specific architecture search**, instead of reusing a shape mirrored from the
    CNN baseline for fair comparison.
-4. **Color (RGB) extension** — per-channel binarize + RLE + fuse, testing whether the
+-. **Color (RGB) extension** — per-channel binarize + RLE + fuse, testing whether the
    efficiency case survives tripling the pipeline for 3 channels.
-5. **N-sweep on a single fixed task** (e.g. subsample Brain Tumor or Pneumonia to
+-. **N-sweep on a single fixed task** (e.g. subsample Brain Tumor or Pneumonia to
    ~1,000 images) to cleanly isolate whether RLE's low-data edge is driven by sample
    size, task structure, or both — currently confounded across the four datasets.
-6. **Scale testing** well past 60,000 images to see whether the CNN's edge widens,
+-. **Scale testing** well past 60,000 images to see whether the CNN's edge widens,
    narrows, or disappears with more data.
 
 ---
